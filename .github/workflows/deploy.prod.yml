@@ -108,4 +108,4 @@ jobs:
         run: |
           cat $TMPDIR/vars.yml
           export ANSIBLE_HOST_KEY_CHECKING=False
-          ansible-playbook -i ansible/inventory/base.ini ansible/playbook.yml --private-key=private_key --extra-vars "@$TMPDIR/vars.yml --user=uwords_admin"
+          ansible-playbook -i ansible/inventory/base.ini ansible/playbook.yml --user=uwords_admin --private-key=private_key --extra-vars "@$TMPDIR/vars.yml"
