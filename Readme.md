@@ -10,3 +10,8 @@ alembic -c src/alembic.ini revision --autogenerate -m "комментарий д
 ```shell
 alembic -c src/alembic.ini upgrade head
 ```
+
+Запуск проекта на локальной машине
+```shell
+docker-compose -f "docker-compose.dev.yml" up --build
+```
