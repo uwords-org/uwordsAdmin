@@ -63,11 +63,11 @@
               max-size: "10m"
               max-file: "3"
           ports:
-          - "127.0.0.1:8101:8100" 
+          - "127.0.0.1:8201:8200" 
           entrypoint: >
             /bin/sh -c "
             alembic -c src/alembic.ini upgrade head;
-            uvicorn src.main:app --reload --proxy-headers --host 0.0.0.0 --port 8100 --workers 4
+            uvicorn src.main:app --reload --proxy-headers --host 0.0.0.0 --port 8200 --workers 4
             "
           depends_on:
           - admin_db
