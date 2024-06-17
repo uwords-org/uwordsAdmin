@@ -70,7 +70,7 @@
             uvicorn main:app --reload --proxy-headers --host 0.0.0.0 --port 8100 --workers 4
             "
           depends_on:
-          - db
+          - admin_db
           restart: always
         
         admin_db:
