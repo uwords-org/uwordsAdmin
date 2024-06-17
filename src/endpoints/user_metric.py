@@ -10,7 +10,7 @@ from src.utils.dependencies import global_metric_service_fabric, user_metric_ser
 router_v1 = APIRouter(prefix="/api/v1/metric", tags=["User Metric"])
 
 
-@router_v1.get("/user", response_model=List[DumpUserMetricSchema], summary='Получение метрики по дням')
+@router_v1.get("/user", response_model=List[DumpUserMetricSchema], summary='Получение метрики по дням', description="Ответ приходит в виде списка по дням в указанном диапазоне")
 async def get_user_metric(
     user_session_service: Annotated[UserMetricService, Depends(user_metric_service_fabric)],
     metric_range: MetricRange,
