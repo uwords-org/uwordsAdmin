@@ -3,3 +3,5 @@ fastapi-users[sqlalchemy]
 alembic==1.13.1
 asyncpg==0.29.0
 gunicorn==22.0.0
+python-dateutil==2.9.0.post0
+numpy==1.26.4

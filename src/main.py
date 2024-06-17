@@ -6,6 +6,9 @@ from src.database.db_config import Admin
 from src.schemas.admin import AdminCreate, AdminRead
 from src.utils.admin import get_admin_manager, auth_backend
 
+from src.endpoints.global_metric import router_v1 as global_metric_router
+from src.endpoints.user_metric import router_v1 as user_metric_router
+
 
 app = FastAPI(
     title="UWords FastAPI Admin",
@@ -36,3 +39,6 @@ app.include_router(
     prefix="/admin/auth",
     tags=["Admin Auth"],
 )
+
+app.include_router(global_metric_router)
+app.include_router(user_metric_router)

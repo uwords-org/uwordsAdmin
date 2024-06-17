@@ -7,12 +7,12 @@ from sqlalchemy.orm import sessionmaker, Mapped, mapped_column
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from fastapi_users_db_sqlalchemy import SQLAlchemyBaseUserTable, SQLAlchemyUserDatabase
 
-from src.utils.instance import DATABASE_URL
+from src.utils.instance import DATABASE_URL_ADMIN
 
 
 Base = declarative_base()
 engine = create_async_engine(
-    DATABASE_URL, future=True
+    DATABASE_URL_ADMIN, future=True
 )
 
 async_session_maker: AsyncSession = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
