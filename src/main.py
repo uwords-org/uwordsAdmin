@@ -30,13 +30,13 @@ fastapi_admins = FastAPIUsers[Admin, int](
 
 app.include_router(
     fastapi_admins.get_auth_router(auth_backend),
-    prefix="/admin/auth",
+    prefix="/api/v1/admin/auth",
     tags=["Admin Auth"],
 )
 
 app.include_router(
     fastapi_admins.get_register_router(AdminRead, AdminCreate),
-    prefix="/admin/auth",
+    prefix="/api/v1/admin/auth",
     tags=["Admin Auth"],
 )
 
