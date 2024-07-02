@@ -1,4 +1,5 @@
-from typing import Annotated, List
+from datetime import datetime
+from typing import Annotated, List, Optional, Union
 from fastapi import APIRouter, Depends
 
 from src.schemas.enums import MetricRange
@@ -10,13 +11,22 @@ from src.utils.dependencies import global_metric_service_fabric, user_metric_ser
 router_v1 = APIRouter(prefix="/api/v1/metric", tags=["User Metric"])
 
 
-@router_v1.get("/user", response_model=List[DumpUserMetricSchema], summary='Получение метрики по дням', description="Ответ приходит в виде списка по дням в указанном диапазоне")
+@router_v1.get("/user", response_model=Union[List[DumpUserMetricSchema], DumpUserMetricSchema], summary='Получение метрики по дням', description="Ответ приходит в виде списка по дням в указанном диапазоне")
 async def get_user_metric(
     user_session_service: Annotated[UserMetricService, Depends(user_metric_service_fabric)],
+    user_id: str,
+    is_union: bool,
     metric_range: MetricRange,
-    user_id: str
+    date_from: Optional[datetime] = None,
+    date_to: Optional[datetime] = None,
 ):
-    return await user_session_service.get_metric(user_id=user_id, metric_range=metric_range)
+    return await user_session_service.get_metric(
+        user_id=user_id, 
+        etric_range=metric_range,
+        is_union=is_union,
+        date_from=date_from,
+        date_to=date_to
+    )
 
 
 @router_v1.post("/user", response_model=DumpUserMetricSchema, summary='Обновление метрики')
