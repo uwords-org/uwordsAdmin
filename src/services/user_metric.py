@@ -165,6 +165,7 @@ class UserMetricService:
         if is_union:
             output_json = {
                 "user_id": metrics[-1].user_id,
+                "created_date": metrics[-1].created_date,
                 "alltime_userwords_amount": metrics[-1].alltime_userwords_amount,
                 "alltime_learned_amount": metrics[-1].alltime_learned_amount,
                 "alltime_learned_percents": metrics[-1].alltime_learned_percents,

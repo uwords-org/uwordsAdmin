@@ -22,7 +22,7 @@ async def get_user_metric(
 ):
     return await user_session_service.get_metric(
         user_id=user_id, 
-        etric_range=metric_range,
+        metric_range=metric_range,
         is_union=is_union,
         date_from=date_from,
         date_to=date_to
