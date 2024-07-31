@@ -21,7 +21,7 @@ class DumpGlobalMetricSchema(BaseModel):
 
 
 class DumpUserMetricSchema(BaseModel):
-    user_id: str
+    user_id: int
     created_date: datetime
 
     alltime_userwords_amount: int
@@ -38,10 +38,10 @@ class DumpUserMetricSchema(BaseModel):
 
 
 class PostMetricSchema(BaseModel):
-    user_id: str
+    user_id: int
 
-    add_words_amount: int
-    add_userwords_amount: int
-    learned_amount: int
-    speech_seconds: int
-    video_seconds: int
+    add_words_amount: Optional[int] = 0
+    add_userwords_amount: Optional[int] = 0
+    learned_amount: Optional[int] = 0
+    speech_seconds: Optional[int] = 0
+    video_seconds: Optional[int] = 0

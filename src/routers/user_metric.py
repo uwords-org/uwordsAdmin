@@ -14,7 +14,7 @@ router_v1 = APIRouter(prefix="/api/v1/metric", tags=["User Metric"])
 @router_v1.get("/user", response_model=Union[List[DumpUserMetricSchema], DumpUserMetricSchema], summary='Получение метрики по дням', description="Ответ приходит в виде списка по дням в указанном диапазоне")
 async def get_user_metric(
     user_session_service: Annotated[UserMetricService, Depends(user_metric_service_fabric)],
-    user_id: str,
+    user_id: int,
     is_union: bool,
     metric_range: MetricRange,
     date_from: Optional[datetime] = None,

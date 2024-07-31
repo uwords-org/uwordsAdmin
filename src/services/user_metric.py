@@ -27,17 +27,24 @@ class UserMetricService:
             
             userwords_amount = today_metric.userwords_amount + metric.add_userwords_amount
             learned_amount = today_metric.learned_amount + metric.learned_amount
+
+            if alltime_userwords_amount != 0:
+                alltime_learned_percents = round((alltime_learned_amount / alltime_userwords_amount) * 100, 2)
+                learned_percents = round((learned_amount / alltime_userwords_amount) * 100, 2)
+            else:
+                alltime_learned_percents = 0
+                learned_percents = 0
         
             user_metric = {
                 "alltime_userwords_amount": alltime_userwords_amount,
                 "alltime_learned_amount": alltime_learned_amount,
-                "alltime_learned_percents": round((alltime_learned_amount / alltime_userwords_amount) * 100, 2),
+                "alltime_learned_percents": alltime_learned_percents,
                 "alltime_speech_seconds": today_metric.alltime_speech_seconds + metric.speech_seconds,
                 "alltime_video_seconds": today_metric.alltime_video_seconds + metric.video_seconds,
                 "words_amount": today_metric.words_amount + metric.add_words_amount,
                 "userwords_amount": userwords_amount,
                 "learned_amount": learned_amount,
-                "learned_percents": round((learned_amount / alltime_userwords_amount) * 100, 2),
+                "learned_percents": learned_percents,
                 "speech_seconds": today_metric.speech_seconds + metric.speech_seconds,
                 "video_seconds": today_metric.video_seconds + metric.video_seconds
             }
@@ -61,32 +68,47 @@ class UserMetricService:
                 userwords_amount = last_metric.userwords_amount + metric.add_userwords_amount
                 learned_amount = last_metric.learned_amount + metric.learned_amount
 
+                if alltime_userwords_amount != 0:
+                    alltime_learned_percents = round((alltime_learned_amount / alltime_userwords_amount) * 100, 2)
+                    learned_percents = round((learned_amount / alltime_userwords_amount) * 100, 2)
+                else:
+                    alltime_learned_percents = 0
+                    learned_percents = 0
+
                 user_metric = {
                     "alltime_userwords_amount": alltime_userwords_amount,
                     "alltime_learned_amount": alltime_learned_amount,
-                    "alltime_learned_percents": round((alltime_learned_amount / alltime_userwords_amount) * 100, 2),
+                    "alltime_learned_percents": alltime_learned_percents,
                     "alltime_speech_seconds": last_metric.alltime_speech_seconds + metric.speech_seconds,
                     "alltime_video_seconds": last_metric.alltime_video_seconds + metric.video_seconds,
                     "words_amount": last_metric.words_amount + metric.add_words_amount,
                     "userwords_amount": userwords_amount,
                     "learned_amount": learned_amount,
-                    "learned_percents": round((learned_amount / alltime_userwords_amount) * 100, 2),
+                    "learned_percents": learned_percents,
                     "speech_seconds": last_metric.speech_seconds + metric.speech_seconds,
                     "video_seconds": last_metric.video_seconds + metric.video_seconds,
                     "user_id": metric.user_id
                 }
 
             else:
+                if metric.add_userwords_amount != 0:
+                    alltime_learned_percents = round((metric.learned_amount / metric.add_userwords_amount) * 100, 2)
+                    learned_percents = round((metric.learned_amount / metric.add_userwords_amount) * 100, 2)
+                else:
+                    alltime_learned_percents = 0
+                    learned_percents = 0
+
+
                 user_metric = {
                     "alltime_userwords_amount": metric.add_userwords_amount,
                     "alltime_learned_amount": metric.learned_amount,
-                    "alltime_learned_percents": round((metric.learned_amount / metric.add_userwords_amount) * 100, 2),
+                    "alltime_learned_percents": alltime_learned_percents,
                     "alltime_speech_seconds": metric.speech_seconds,
                     "alltime_video_seconds": metric.video_seconds,
                     "words_amount": metric.add_words_amount,
                     "userwords_amount": metric.add_userwords_amount,
                     "learned_amount": metric.learned_amount,
-                    "learned_percents": round((metric.learned_amount / metric.add_userwords_amount) * 100, 2),
+                    "learned_percents": learned_percents,
                     "speech_seconds": metric.speech_seconds,
                     "video_seconds": metric.video_seconds,
                     "user_id": metric.user_id
@@ -96,7 +118,7 @@ class UserMetricService:
                 data=user_metric
             )
     
-    async def get_metric(self, user_id: str, is_union: bool, metric_range: MetricRange, date_from: Optional[datetime] = None, date_to: Optional[datetime] = None) -> UserMetric:
+    async def get_metric(self, user_id: int, is_union: bool, metric_range: MetricRange, date_from: Optional[datetime] = None, date_to: Optional[datetime] = None) -> UserMetric:
         today = datetime.today()
 
         if metric_range and metric_range != MetricRange.no_range:
@@ -185,8 +207,11 @@ class UserMetricService:
                 output_json["learned_amount"] += metric.learned_amount
                 output_json["speech_seconds"] += metric.speech_seconds
                 output_json["video_seconds"] += metric.video_seconds
-            
-            output_json["learned_percents"] = round((output_json["learned_amount"] / output_json["userwords_amount"]) * 100, 2)
+
+            if output_json["userwords_amount"] != 0:
+                output_json["learned_percents"] = round((output_json["learned_amount"] / output_json["userwords_amount"]) * 100, 2)
+            else:
+                output_json["learned_percents"] = 0
 
             return output_json
     

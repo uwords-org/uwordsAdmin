@@ -3,6 +3,7 @@
 
 # dirs
 postgres-data/
+.venv/
 venv/
 .idea/
 **/__pycache__

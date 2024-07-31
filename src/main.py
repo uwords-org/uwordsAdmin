@@ -6,8 +6,8 @@ from src.database.db_config import Admin
 from src.schemas.admin import AdminCreate, AdminRead
 from src.utils.admin import get_admin_manager, auth_backend
 
-from src.endpoints.global_metric import router_v1 as global_metric_router
-from src.endpoints.user_metric import router_v1 as user_metric_router
+from src.routers.global_metric import router_v1 as global_metric_router
+from src.routers.user_metric import router_v1 as user_metric_router
 
 
 app = FastAPI(
