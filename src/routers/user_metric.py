@@ -7,7 +7,7 @@ from src.services.user_metric import UserMetricService
 from src.services.global_metric import GlobalMetricService
 from src.schemas.metric import PostMetricSchema, DumpUserMetricSchema
 from src.utils.dependencies import global_metric_service_fabric, user_metric_service_fabric
-from utils.headers import check_secret_token
+from src.utils.headers import check_service_token
 
 router_v1 = APIRouter(prefix="/api/v1/metric", tags=["User Metric"])
 
@@ -25,7 +25,7 @@ async def get_user_metric(
     metric_range: MetricRange,
     date_from: Optional[datetime] = None,
     date_to: Optional[datetime] = None,
-    token = Depends(check_secret_token)
+    token = Depends(check_service_token)
 ):
     return await user_session_service.get_metric(
         user_id=uwords_uid, 
@@ -41,7 +41,7 @@ async def update_user_metric(
     metric: PostMetricSchema,
     user_session_service: Annotated[UserMetricService, Depends(user_metric_service_fabric)],
     global_session_service: Annotated[GlobalMetricService, Depends(global_metric_service_fabric)],
-    token = Depends(check_secret_token)
+    token = Depends(check_service_token)
 ):
     
     await global_session_service.update_or_create_metric(metric=metric)

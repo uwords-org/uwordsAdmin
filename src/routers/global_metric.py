@@ -5,7 +5,7 @@ from src.schemas.enums import MetricRange
 from src.schemas.metric import DumpGlobalMetricSchema
 from src.services.global_metric import GlobalMetricService
 from src.utils.dependencies import global_metric_service_fabric
-from utils.headers import check_secret_token
+from src.utils.headers import check_service_token
 
 router_v1 = APIRouter(prefix="/api/v1/metric", tags=["Global Metric"])
 
@@ -22,7 +22,7 @@ async def get_global_metric(
     metric_range: MetricRange,
     date_from: Optional[datetime] = None,
     date_to: Optional[datetime] = None,
-    token = Depends(check_secret_token)
+    token = Depends(check_service_token)
 ):
     return await global_session_service.get_metric(
         metric_range=metric_range,
