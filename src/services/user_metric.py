@@ -98,7 +98,6 @@ class UserMetricService:
                     alltime_learned_percents = 0
                     learned_percents = 0
 
-
                 user_metric = {
                     "alltime_userwords_amount": metric.add_userwords_amount,
                     "alltime_learned_amount": metric.learned_amount,
@@ -118,7 +117,7 @@ class UserMetricService:
                 data=user_metric
             )
     
-    async def get_metric(self, user_id: int, is_union: bool, metric_range: MetricRange, date_from: Optional[datetime] = None, date_to: Optional[datetime] = None) -> UserMetric:
+    async def get_metric(self, user_id: str, is_union: bool, metric_range: MetricRange, date_from: Optional[datetime] = None, date_to: Optional[datetime] = None) -> UserMetric:
         today = datetime.today()
 
         if metric_range and metric_range != MetricRange.no_range:
