@@ -51,6 +51,6 @@ class UserMetric(Base):
     speech_seconds = Column(Integer, nullable=True, default=0)
     video_seconds = Column(Integer, nullable=True, default=0)
     
-    user_id = Column(String, nullable=False)
+    uwords_uid = Column(String, nullable=False)
 
     created_date = Column(DateTime(timezone=True), server_default=func.now())

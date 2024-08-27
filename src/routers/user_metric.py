@@ -28,7 +28,7 @@ async def get_user_metric(
     token = Depends(check_service_token)
 ):
     return await user_session_service.get_metric(
-        user_id=uwords_uid, 
+        uwords_uid=uwords_uid, 
         metric_range=metric_range,
         is_union=is_union,
         date_from=date_from,

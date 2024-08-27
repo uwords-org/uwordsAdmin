@@ -15,7 +15,7 @@ from fastapi_users import (
 )
 
 from src.database.db_config import Admin, get_admin_db
-from src.utils.instance import FASTAPI_SECRET, ADMIN_SECRET
+from src.config.instance import FASTAPI_SECRET, ADMIN_SECRET
 
 
 bearer_transport = BearerTransport(tokenUrl="")

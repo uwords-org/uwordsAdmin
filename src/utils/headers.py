@@ -3,7 +3,7 @@ import logging
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from src.utils.instance import SERVICE_TOKEN
+from src.config.instance import SERVICE_TOKEN
 
 
 logging.basicConfig(

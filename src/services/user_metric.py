@@ -1,10 +1,13 @@
 from datetime import datetime
-from typing import Optional
-from src.schemas.enums import MetricRange
+from typing import Optional, Union
 from dateutil.relativedelta import relativedelta
-from src.schemas.metric import PostMetricSchema
-from src.utils.repository import AbstractRepository
+
 from src.database.models import UserMetric
+
+from src.schemas.enums import MetricRange
+from src.schemas.metric import PostMetricSchema
+
+from src.utils.repository import AbstractRepository
 
 
 class UserMetricService:
@@ -12,207 +15,188 @@ class UserMetricService:
         self.repo = repo
 
     async def update_or_create_metric(self, metric: PostMetricSchema) -> UserMetric:
-        
         today = datetime(datetime.today().year, datetime.today().month, datetime.today().day)
+        # Проверка наличия метрики за текущий день
         today_metric: UserMetric = await self.repo.get_one(
             filters=(
-                UserMetric.user_id == metric.user_id,
+                UserMetric.uwords_uid == metric.uwords_uid,
                 UserMetric.created_date >= today
             )
         )
 
         if today_metric:
-            alltime_userwords_amount = today_metric.alltime_userwords_amount + metric.add_userwords_amount
-            alltime_learned_amount = today_metric.alltime_learned_amount + metric.learned_amount
-            
-            userwords_amount = today_metric.userwords_amount + metric.add_userwords_amount
-            learned_amount = today_metric.learned_amount + metric.learned_amount
-
-            if alltime_userwords_amount != 0:
-                alltime_learned_percents = round((alltime_learned_amount / alltime_userwords_amount) * 100, 2)
-                learned_percents = round((learned_amount / alltime_userwords_amount) * 100, 2)
-            else:
-                alltime_learned_percents = 0
-                learned_percents = 0
-        
-            user_metric = {
-                "alltime_userwords_amount": alltime_userwords_amount,
-                "alltime_learned_amount": alltime_learned_amount,
-                "alltime_learned_percents": alltime_learned_percents,
-                "alltime_speech_seconds": today_metric.alltime_speech_seconds + metric.speech_seconds,
-                "alltime_video_seconds": today_metric.alltime_video_seconds + metric.video_seconds,
-                "words_amount": today_metric.words_amount + metric.add_words_amount,
-                "userwords_amount": userwords_amount,
-                "learned_amount": learned_amount,
-                "learned_percents": learned_percents,
-                "speech_seconds": today_metric.speech_seconds + metric.speech_seconds,
-                "video_seconds": today_metric.video_seconds + metric.video_seconds
-            }
-            
-            return await self.repo.update_one(
-                id=today_metric.id,
-                values=user_metric
-            )
+            # Если метрика за сегодня существует, инкрементируем значения
+            updated_values = self._increment_metric_values(today_metric, metric)
+            return await self.repo.update_one(id=today_metric.id, values=updated_values)
         
         else:
-            last_metric: UserMetric = await self.repo.get_last(
-                filters=(
-                    UserMetric.user_id == metric.user_id,
-                )
-            )
-
+            # Получение последней метрики пользователя
+            last_metric = await self.repo.get_last(filters=(UserMetric.uwords_uid == metric.uwords_uid,))
             if last_metric:
-                alltime_userwords_amount = last_metric.alltime_userwords_amount + metric.add_userwords_amount
-                alltime_learned_amount = last_metric.alltime_learned_amount + metric.learned_amount
-                
-                userwords_amount = last_metric.userwords_amount + metric.add_userwords_amount
-                learned_amount = last_metric.learned_amount + metric.learned_amount
-
-                if alltime_userwords_amount != 0:
-                    alltime_learned_percents = round((alltime_learned_amount / alltime_userwords_amount) * 100, 2)
-                    learned_percents = round((learned_amount / alltime_userwords_amount) * 100, 2)
-                else:
-                    alltime_learned_percents = 0
-                    learned_percents = 0
-
-                user_metric = {
-                    "alltime_userwords_amount": alltime_userwords_amount,
-                    "alltime_learned_amount": alltime_learned_amount,
-                    "alltime_learned_percents": alltime_learned_percents,
-                    "alltime_speech_seconds": last_metric.alltime_speech_seconds + metric.speech_seconds,
-                    "alltime_video_seconds": last_metric.alltime_video_seconds + metric.video_seconds,
-                    "words_amount": last_metric.words_amount + metric.add_words_amount,
-                    "userwords_amount": userwords_amount,
-                    "learned_amount": learned_amount,
-                    "learned_percents": learned_percents,
-                    "speech_seconds": last_metric.speech_seconds + metric.speech_seconds,
-                    "video_seconds": last_metric.video_seconds + metric.video_seconds,
-                    "user_id": metric.user_id
-                }
-
+                new_values = self._initialize_metric_values(last_metric=last_metric, new_metric=metric) 
             else:
-                if metric.add_userwords_amount != 0:
-                    alltime_learned_percents = round((metric.learned_amount / metric.add_userwords_amount) * 100, 2)
-                    learned_percents = round((metric.learned_amount / metric.add_userwords_amount) * 100, 2)
-                else:
-                    alltime_learned_percents = 0
-                    learned_percents = 0
+                new_values = self._initialize_first_metric(new_metric=metric)
+            return await self.repo.add_one(data=new_values)
 
-                user_metric = {
-                    "alltime_userwords_amount": metric.add_userwords_amount,
-                    "alltime_learned_amount": metric.learned_amount,
-                    "alltime_learned_percents": alltime_learned_percents,
-                    "alltime_speech_seconds": metric.speech_seconds,
-                    "alltime_video_seconds": metric.video_seconds,
-                    "words_amount": metric.add_words_amount,
-                    "userwords_amount": metric.add_userwords_amount,
-                    "learned_amount": metric.learned_amount,
-                    "learned_percents": learned_percents,
-                    "speech_seconds": metric.speech_seconds,
-                    "video_seconds": metric.video_seconds,
-                    "user_id": metric.user_id
-                }
-            
-            return await self.repo.add_one(
-                data=user_metric
-            )
-    
-    async def get_metric(self, user_id: str, is_union: bool, metric_range: MetricRange, date_from: Optional[datetime] = None, date_to: Optional[datetime] = None) -> UserMetric:
+    def _increment_metric_values(self, existing_metric: UserMetric, new_metric: PostMetricSchema) -> dict:
+        """
+        Инкрементирует значения метрики с учетом новых данных.
+        """
+        alltime_userwords_amount = existing_metric.alltime_userwords_amount + new_metric.add_userwords_amount
+        alltime_learned_amount = existing_metric.alltime_learned_amount + new_metric.learned_amount
+        userwords_amount = existing_metric.userwords_amount + new_metric.add_userwords_amount
+        learned_amount = existing_metric.learned_amount + new_metric.learned_amount
+
+        alltime_learned_percents = self._calculate_percentage(alltime_learned_amount, alltime_userwords_amount)
+        learned_percents = self._calculate_percentage(learned_amount, alltime_userwords_amount)
+
+        return {
+            "alltime_userwords_amount": alltime_userwords_amount,
+            "alltime_learned_amount": alltime_learned_amount,
+            "alltime_learned_percents": alltime_learned_percents,
+            "alltime_speech_seconds": existing_metric.alltime_speech_seconds + new_metric.speech_seconds,
+            "alltime_video_seconds": existing_metric.alltime_video_seconds + new_metric.video_seconds,
+            "words_amount": existing_metric.words_amount + new_metric.add_words_amount,
+            "userwords_amount": userwords_amount,
+            "learned_amount": learned_amount,
+            "learned_percents": learned_percents,
+            "speech_seconds": existing_metric.speech_seconds + new_metric.speech_seconds,
+            "video_seconds": existing_metric.video_seconds + new_metric.video_seconds
+        }
+
+    def _initialize_metric_values(self, last_metric: UserMetric, new_metric: PostMetricSchema) -> dict:
+        """
+        Создает новую метрику на основе последней существующей метрики и новых данных.
+        """
+        alltime_userwords_amount = last_metric.alltime_userwords_amount + new_metric.add_userwords_amount
+        alltime_learned_amount = last_metric.alltime_learned_amount + new_metric.learned_amount
+
+        alltime_learned_percents = self._calculate_percentage(alltime_learned_amount, alltime_userwords_amount)
+        learned_percents = self._calculate_percentage(new_metric.learned_amount, new_metric.add_userwords_amount)
+
+        return {
+            "alltime_userwords_amount": alltime_userwords_amount,
+            "alltime_learned_amount": alltime_learned_amount,
+            "alltime_learned_percents": alltime_learned_percents,
+            "alltime_speech_seconds": last_metric.alltime_speech_seconds + new_metric.speech_seconds,
+            "alltime_video_seconds": last_metric.alltime_video_seconds + new_metric.video_seconds,
+            "words_amount": new_metric.add_words_amount,
+            "userwords_amount": new_metric.add_userwords_amount,
+            "learned_amount": new_metric.learned_amount,
+            "learned_percents": learned_percents,
+            "speech_seconds": new_metric.speech_seconds,
+            "video_seconds": new_metric.video_seconds,
+            "uwords_uid": new_metric.uwords_uid
+        }
+
+    def _initialize_first_metric(self, new_metric: PostMetricSchema) -> dict:
+        """
+        Создает первую метрику, если в базе данных ещё нет данных.
+        """
+        learned_percents = self._calculate_percentage(new_metric.learned_amount, new_metric.add_userwords_amount)
+
+        return {
+            "alltime_userwords_amount": new_metric.add_userwords_amount,
+            "alltime_learned_amount": new_metric.learned_amount,
+            "alltime_learned_percents": learned_percents,
+            "alltime_speech_seconds": new_metric.speech_seconds,
+            "alltime_video_seconds": new_metric.video_seconds,
+            "words_amount": new_metric.add_words_amount,
+            "userwords_amount": new_metric.add_userwords_amount,
+            "learned_amount": new_metric.learned_amount,
+            "learned_percents": learned_percents,
+            "speech_seconds": new_metric.speech_seconds,
+            "video_seconds": new_metric.video_seconds,
+            "uwords_uid": new_metric.uwords_uid
+        }
+
+    def _calculate_percentage(self, part: float, whole: float) -> float:
+        """
+        Вычисляет процентную долю `part` от `whole`.
+        """
+        return round((part / whole) * 100, 2) if whole != 0 else 0.0
+
+    async def get_metric(
+        self, 
+        uwords_uid: str, 
+        is_union: bool, 
+        metric_range: MetricRange, 
+        date_from: Optional[datetime] = None, 
+        date_to: Optional[datetime] = None
+    ) -> Union[dict, list[UserMetric]]:
         today = datetime.today()
 
+        # Определяем фильтр по диапазону дат
+        date = self._get_start_date_based_on_range(metric_range, today)
+
+        filters = [UserMetric.uwords_uid == uwords_uid]
+        if date:
+            filters.append(UserMetric.created_date >= datetime(date.year, date.month, date.day))
+        if date_from:
+            filters.append(UserMetric.created_date >= datetime(date_from.year, date_from.month, date_from.day))
+        if date_to:
+            filters.append(UserMetric.created_date <= datetime(date_to.year, date_to.month, date_to.day))
+        if not date_from and not date_to and not date:
+            filters.append(UserMetric.created_date >= datetime(today.year, today.month, today.day))
+
+        metrics = await self.repo.get_all_by_filter(
+            filters=tuple(filters),
+            order=UserMetric.id.asc(),
+            limit=0
+        )
+
+        if is_union:
+            return self._aggregate_metrics(metrics)
+        
+        return metrics
+
+    def _get_start_date_based_on_range(self, metric_range: MetricRange, today: datetime) -> Optional[datetime]:
+        """Определяет начальную дату на основе указанного диапазона метрик."""
         if metric_range and metric_range != MetricRange.no_range:
             match metric_range:
                 case MetricRange.today:
-                    date = today
+                    return today
                 case MetricRange.week:
-                    date = today - relativedelta(weeks=1)
+                    return today - relativedelta(weeks=1)
                 case MetricRange.month:
-                    date = today - relativedelta(months=1)
+                    return today - relativedelta(months=1)
                 case MetricRange.year:
-                    date = today - relativedelta(years=1)
+                    return today - relativedelta(years=1)
                 case MetricRange.alltime:
-                    date = datetime(2000, 1, 1)
-            
-            metrics: list[UserMetric] = await self.repo.get_all_by_filter(
-                filters=(
-                    UserMetric.user_id == user_id,
-                    UserMetric.created_date >= datetime(date.year, date.month, date.day),
-                ),
-                order=UserMetric.id.asc(),
-                limit=0
-            )
-        
-        elif date_from and not date_to:
-            metrics: list[UserMetric] = await self.repo.get_all_by_filter(
-                filters=(
-                    UserMetric.user_id == user_id, 
-                    UserMetric.created_date >= datetime(date_from.year, date_from.month, date_from.day),
-                ),
-                order=UserMetric.id.asc(),
-                limit=0
-            )
-        
-        elif date_from and date_to:
-            metrics: list[UserMetric] = await self.repo.get_all_by_filter(
-                filters=(
-                    UserMetric.user_id == user_id, 
-                    UserMetric.created_date >= datetime(date_from.year, date_from.month, date_from.day),
-                    UserMetric.created_date <= datetime(date_to.year, date_to.month, date_to.day),
-                ),
-                order=UserMetric.id.asc(),
-                limit=0
-            )
-        
-        elif not date_from and date_to:
-            metrics: list[UserMetric] = await self.repo.get_all_by_filter(
-                filters=(
-                    UserMetric.user_id == user_id, 
-                    UserMetric.created_date <= datetime(date_to.year, date_to.month, date_to.day),
-                ),
-                order=UserMetric.id.asc(),
-                limit=0
-            )
-        
+                    return datetime(2000, 1, 1)
+        return None
+
+    def _aggregate_metrics(self, metrics: list[UserMetric]) -> dict:
+        """Агрегирует список метрик в один словарь с накопленными значениями."""
+        if not metrics:
+            return {}  # Возвращаем пустой словарь, если метрик нет
+
+        output_json = {
+            "uwords_uid": metrics[-1].uwords_uid,
+            "created_date": metrics[-1].created_date,
+            "alltime_userwords_amount": metrics[-1].alltime_userwords_amount,
+            "alltime_learned_amount": metrics[-1].alltime_learned_amount,
+            "alltime_learned_percents": metrics[-1].alltime_learned_percents,
+            "alltime_speech_seconds": metrics[-1].alltime_speech_seconds,
+            "alltime_video_seconds": metrics[-1].alltime_video_seconds,
+            "words_amount": 0,
+            "userwords_amount": 0,
+            "learned_amount": 0,
+            "learned_percents": 0,
+            "speech_seconds": 0,
+            "video_seconds": 0
+        }
+
+        for metric in metrics:
+            output_json["words_amount"] += metric.words_amount
+            output_json["userwords_amount"] += metric.userwords_amount
+            output_json["learned_amount"] += metric.learned_amount
+            output_json["speech_seconds"] += metric.speech_seconds
+            output_json["video_seconds"] += metric.video_seconds
+
+        if output_json["userwords_amount"] > 0:
+            output_json["learned_percents"] = round((output_json["learned_amount"] / output_json["userwords_amount"]) * 100, 2)
         else:
-            metrics: list[UserMetric] = await self.repo.get_all_by_filter(
-                filters=(
-                    UserMetric.user_id == user_id, 
-                    UserMetric.created_date >= datetime(today.year, today.month, today.day),
-                ),
-                order=UserMetric.id.asc(),
-                limit=0
-            )
+            output_json["learned_percents"] = 0
 
-        if is_union:
-            output_json = {
-                "user_id": metrics[-1].user_id,
-                "created_date": metrics[-1].created_date,
-                "alltime_userwords_amount": metrics[-1].alltime_userwords_amount,
-                "alltime_learned_amount": metrics[-1].alltime_learned_amount,
-                "alltime_learned_percents": metrics[-1].alltime_learned_percents,
-                "alltime_speech_seconds": metrics[-1].alltime_speech_seconds,
-                "alltime_video_seconds": metrics[-1].alltime_video_seconds,
-                "words_amount": 0,
-                "userwords_amount": 0,
-                "learned_amount": 0,
-                "learned_percents": 0,
-                "speech_seconds": 0,
-                "video_seconds": 0
-            }
-
-            for metric in metrics:
-                output_json["words_amount"] += metric.words_amount
-                output_json["userwords_amount"] += metric.userwords_amount
-                output_json["learned_amount"] += metric.learned_amount
-                output_json["speech_seconds"] += metric.speech_seconds
-                output_json["video_seconds"] += metric.video_seconds
-
-            if output_json["userwords_amount"] != 0:
-                output_json["learned_percents"] = round((output_json["learned_amount"] / output_json["userwords_amount"]) * 100, 2)
-            else:
-                output_json["learned_percents"] = 0
-
-            return output_json
-    
-        else:
-            return metrics
+        return output_json

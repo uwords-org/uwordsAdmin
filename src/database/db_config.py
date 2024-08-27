@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker, Mapped, mapped_column
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from fastapi_users_db_sqlalchemy import SQLAlchemyBaseUserTable, SQLAlchemyUserDatabase
 
-from src.utils.instance import DATABASE_URL
+from src.config.instance import DATABASE_URL
 
 
 Base = declarative_base()

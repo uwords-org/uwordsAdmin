@@ -8,7 +8,7 @@ from alembic import context
 from src.database.models import *
 from src.database.db_config import Base
 
-from src.utils.instance import (
+from src.config.instance import (
     POSTGRES_DB,
     POSTGRES_HOST,
     POSTGRES_PORT,
