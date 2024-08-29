@@ -17,7 +17,6 @@ router_v1 = APIRouter(prefix="/api/v1/metric", tags=["User Metric"])
 
 @router_v1.get(
     "/user",
-    response_model=Union[List[DumpUserMetricSchema], DumpUserMetricSchema],
     summary="Получение метрики по дням",
     description="Ответ приходит в виде списка по дням в указанном диапазоне",
 )
