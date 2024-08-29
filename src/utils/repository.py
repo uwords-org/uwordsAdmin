@@ -21,7 +21,7 @@ class AbstractRepository(abc.ABC):
     @abc.abstractmethod
     async def mark_as_delete(self, id):
         raise NotImplemented()
-    
+
     @abc.abstractmethod
     async def update_one(self, id, values):
         raise NotImplemented()
@@ -33,7 +33,7 @@ class AbstractRepository(abc.ABC):
     @abc.abstractmethod
     async def get_all(self, limit):
         raise NotImplemented
-    
+
     @abc.abstractmethod
     async def get_last(self, filters):
         raise NotImplemented
@@ -70,7 +70,7 @@ class SQLAlchemyRepository(AbstractRepository):
     async def mark_as_delete(self, id):
         async with async_session_maker() as session:
             session: AsyncSession
-            
+
             stmt = update(self.model).where(self.model.id == id).values(is_delete=True)
             await session.execute(stmt)
             await session.commit()
@@ -79,7 +79,12 @@ class SQLAlchemyRepository(AbstractRepository):
         async with async_session_maker() as session:
             session: AsyncSession
 
-            stmt = update(self.model).where(self.model.id == id).values(values).returning(self.model)
+            stmt = (
+                update(self.model)
+                .where(self.model.id == id)
+                .values(values)
+                .returning(self.model)
+            )
             res = await session.execute(stmt)
             await session.commit()
             return res.scalar_one_or_none()
@@ -102,13 +107,18 @@ class SQLAlchemyRepository(AbstractRepository):
             stmt = select(self.model).limit(limit)
             res = await session.execute(stmt)
             return res.scalars().all()
-        
+
     async def get_last(self, filters):
         async with async_session_maker() as session:
             session: AsyncSession
 
             if filters:
-                stmt = select(self.model).where(*filters).order_by(self.model.id.desc()).limit(1)
+                stmt = (
+                    select(self.model)
+                    .where(*filters)
+                    .order_by(self.model.id.desc())
+                    .limit(1)
+                )
             else:
                 stmt = select(self.model).order_by(self.model.id.desc()).limit(1)
             res = await session.execute(stmt)

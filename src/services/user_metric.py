@@ -15,12 +15,14 @@ class UserMetricService:
         self.repo = repo
 
     async def update_or_create_metric(self, metric: PostMetricSchema) -> UserMetric:
-        today = datetime(datetime.today().year, datetime.today().month, datetime.today().day)
+        today = datetime(
+            datetime.today().year, datetime.today().month, datetime.today().day
+        )
         # Проверка наличия метрики за текущий день
         today_metric: UserMetric = await self.repo.get_one(
             filters=(
                 UserMetric.uwords_uid == metric.uwords_uid,
-                UserMetric.created_date >= today
+                UserMetric.created_date >= today,
             )
         )
 
@@ -28,72 +30,105 @@ class UserMetricService:
             # Если метрика за сегодня существует, инкрементируем значения
             updated_values = self._increment_metric_values(today_metric, metric)
             return await self.repo.update_one(id=today_metric.id, values=updated_values)
-        
+
         else:
             # Получение последней метрики пользователя
-            last_metric = await self.repo.get_last(filters=(UserMetric.uwords_uid == metric.uwords_uid,))
+            last_metric = await self.repo.get_last(
+                filters=(UserMetric.uwords_uid == metric.uwords_uid,)
+            )
             if last_metric:
-                new_values = self._initialize_metric_values(last_metric=last_metric, new_metric=metric) 
+                new_values = self._initialize_metric_values(
+                    last_metric=last_metric, new_metric=metric
+                )
             else:
                 new_values = self._initialize_first_metric(new_metric=metric)
             return await self.repo.add_one(data=new_values)
 
-    def _increment_metric_values(self, existing_metric: UserMetric, new_metric: PostMetricSchema) -> dict:
+    def _increment_metric_values(
+        self, existing_metric: UserMetric, new_metric: PostMetricSchema
+    ) -> dict:
         """
         Инкрементирует значения метрики с учетом новых данных.
         """
-        alltime_userwords_amount = existing_metric.alltime_userwords_amount + new_metric.add_userwords_amount
-        alltime_learned_amount = existing_metric.alltime_learned_amount + new_metric.learned_amount
-        userwords_amount = existing_metric.userwords_amount + new_metric.add_userwords_amount
+        alltime_userwords_amount = (
+            existing_metric.alltime_userwords_amount + new_metric.add_userwords_amount
+        )
+        alltime_learned_amount = (
+            existing_metric.alltime_learned_amount + new_metric.learned_amount
+        )
+        userwords_amount = (
+            existing_metric.userwords_amount + new_metric.add_userwords_amount
+        )
         learned_amount = existing_metric.learned_amount + new_metric.learned_amount
 
-        alltime_learned_percents = self._calculate_percentage(alltime_learned_amount, alltime_userwords_amount)
-        learned_percents = self._calculate_percentage(learned_amount, alltime_userwords_amount)
+        alltime_learned_percents = self._calculate_percentage(
+            alltime_learned_amount, alltime_userwords_amount
+        )
+        learned_percents = self._calculate_percentage(
+            learned_amount, alltime_userwords_amount
+        )
 
         return {
             "alltime_userwords_amount": alltime_userwords_amount,
             "alltime_learned_amount": alltime_learned_amount,
             "alltime_learned_percents": alltime_learned_percents,
-            "alltime_speech_seconds": existing_metric.alltime_speech_seconds + new_metric.speech_seconds,
-            "alltime_video_seconds": existing_metric.alltime_video_seconds + new_metric.video_seconds,
+            "alltime_speech_seconds": existing_metric.alltime_speech_seconds
+            + new_metric.speech_seconds,
+            "alltime_video_seconds": existing_metric.alltime_video_seconds
+            + new_metric.video_seconds,
             "words_amount": existing_metric.words_amount + new_metric.add_words_amount,
             "userwords_amount": userwords_amount,
             "learned_amount": learned_amount,
             "learned_percents": learned_percents,
-            "speech_seconds": existing_metric.speech_seconds + new_metric.speech_seconds,
-            "video_seconds": existing_metric.video_seconds + new_metric.video_seconds
+            "speech_seconds": existing_metric.speech_seconds
+            + new_metric.speech_seconds,
+            "video_seconds": existing_metric.video_seconds + new_metric.video_seconds,
         }
 
-    def _initialize_metric_values(self, last_metric: UserMetric, new_metric: PostMetricSchema) -> dict:
+    def _initialize_metric_values(
+        self, last_metric: UserMetric, new_metric: PostMetricSchema
+    ) -> dict:
         """
         Создает новую метрику на основе последней существующей метрики и новых данных.
         """
-        alltime_userwords_amount = last_metric.alltime_userwords_amount + new_metric.add_userwords_amount
-        alltime_learned_amount = last_metric.alltime_learned_amount + new_metric.learned_amount
+        alltime_userwords_amount = (
+            last_metric.alltime_userwords_amount + new_metric.add_userwords_amount
+        )
+        alltime_learned_amount = (
+            last_metric.alltime_learned_amount + new_metric.learned_amount
+        )
 
-        alltime_learned_percents = self._calculate_percentage(alltime_learned_amount, alltime_userwords_amount)
-        learned_percents = self._calculate_percentage(new_metric.learned_amount, new_metric.add_userwords_amount)
+        alltime_learned_percents = self._calculate_percentage(
+            alltime_learned_amount, alltime_userwords_amount
+        )
+        learned_percents = self._calculate_percentage(
+            new_metric.learned_amount, new_metric.add_userwords_amount
+        )
 
         return {
             "alltime_userwords_amount": alltime_userwords_amount,
             "alltime_learned_amount": alltime_learned_amount,
             "alltime_learned_percents": alltime_learned_percents,
-            "alltime_speech_seconds": last_metric.alltime_speech_seconds + new_metric.speech_seconds,
-            "alltime_video_seconds": last_metric.alltime_video_seconds + new_metric.video_seconds,
+            "alltime_speech_seconds": last_metric.alltime_speech_seconds
+            + new_metric.speech_seconds,
+            "alltime_video_seconds": last_metric.alltime_video_seconds
+            + new_metric.video_seconds,
             "words_amount": new_metric.add_words_amount,
             "userwords_amount": new_metric.add_userwords_amount,
             "learned_amount": new_metric.learned_amount,
             "learned_percents": learned_percents,
             "speech_seconds": new_metric.speech_seconds,
             "video_seconds": new_metric.video_seconds,
-            "uwords_uid": new_metric.uwords_uid
+            "uwords_uid": new_metric.uwords_uid,
         }
 
     def _initialize_first_metric(self, new_metric: PostMetricSchema) -> dict:
         """
         Создает первую метрику, если в базе данных ещё нет данных.
         """
-        learned_percents = self._calculate_percentage(new_metric.learned_amount, new_metric.add_userwords_amount)
+        learned_percents = self._calculate_percentage(
+            new_metric.learned_amount, new_metric.add_userwords_amount
+        )
 
         return {
             "alltime_userwords_amount": new_metric.add_userwords_amount,
@@ -107,7 +142,7 @@ class UserMetricService:
             "learned_percents": learned_percents,
             "speech_seconds": new_metric.speech_seconds,
             "video_seconds": new_metric.video_seconds,
-            "uwords_uid": new_metric.uwords_uid
+            "uwords_uid": new_metric.uwords_uid,
         }
 
     def _calculate_percentage(self, part: float, whole: float) -> float:
@@ -117,12 +152,12 @@ class UserMetricService:
         return round((part / whole) * 100, 2) if whole != 0 else 0.0
 
     async def get_metric(
-        self, 
-        uwords_uid: str, 
-        is_union: bool, 
-        metric_range: MetricRange, 
-        date_from: Optional[datetime] = None, 
-        date_to: Optional[datetime] = None
+        self,
+        uwords_uid: str,
+        is_union: bool,
+        metric_range: MetricRange,
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None,
     ) -> Union[dict, list[UserMetric]]:
         today = datetime.today()
 
@@ -131,26 +166,36 @@ class UserMetricService:
 
         filters = [UserMetric.uwords_uid == uwords_uid]
         if date:
-            filters.append(UserMetric.created_date >= datetime(date.year, date.month, date.day))
+            filters.append(
+                UserMetric.created_date >= datetime(date.year, date.month, date.day)
+            )
         if date_from:
-            filters.append(UserMetric.created_date >= datetime(date_from.year, date_from.month, date_from.day))
+            filters.append(
+                UserMetric.created_date
+                >= datetime(date_from.year, date_from.month, date_from.day)
+            )
         if date_to:
-            filters.append(UserMetric.created_date <= datetime(date_to.year, date_to.month, date_to.day))
+            filters.append(
+                UserMetric.created_date
+                <= datetime(date_to.year, date_to.month, date_to.day)
+            )
         if not date_from and not date_to and not date:
-            filters.append(UserMetric.created_date >= datetime(today.year, today.month, today.day))
+            filters.append(
+                UserMetric.created_date >= datetime(today.year, today.month, today.day)
+            )
 
         metrics = await self.repo.get_all_by_filter(
-            filters=tuple(filters),
-            order=UserMetric.id.asc(),
-            limit=0
+            filters=tuple(filters), order=UserMetric.id.asc(), limit=0
         )
 
         if is_union:
             return self._aggregate_metrics(metrics)
-        
+
         return metrics
 
-    def _get_start_date_based_on_range(self, metric_range: MetricRange, today: datetime) -> Optional[datetime]:
+    def _get_start_date_based_on_range(
+        self, metric_range: MetricRange, today: datetime
+    ) -> Optional[datetime]:
         """Определяет начальную дату на основе указанного диапазона метрик."""
         if metric_range and metric_range != MetricRange.no_range:
             match metric_range:
@@ -184,7 +229,7 @@ class UserMetricService:
             "learned_amount": 0,
             "learned_percents": 0,
             "speech_seconds": 0,
-            "video_seconds": 0
+            "video_seconds": 0,
         }
 
         for metric in metrics:
@@ -195,7 +240,10 @@ class UserMetricService:
             output_json["video_seconds"] += metric.video_seconds
 
         if output_json["userwords_amount"] > 0:
-            output_json["learned_percents"] = round((output_json["learned_amount"] / output_json["userwords_amount"]) * 100, 2)
+            output_json["learned_percents"] = round(
+                (output_json["learned_amount"] / output_json["userwords_amount"]) * 100,
+                2,
+            )
         else:
             output_json["learned_percents"] = 0
 

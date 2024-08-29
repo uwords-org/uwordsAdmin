@@ -4,15 +4,9 @@ from fastapi import Depends, Request
 from fastapi_users.authentication import (
     AuthenticationBackend,
     BearerTransport,
-    JWTStrategy
+    JWTStrategy,
 )
-from fastapi_users import (
-    BaseUserManager, 
-    IntegerIDMixin,
-    exceptions,
-    schemas,
-    models
-)
+from fastapi_users import BaseUserManager, IntegerIDMixin, exceptions, schemas, models
 
 from src.database.db_config import Admin, get_admin_db
 from src.config.instance import FASTAPI_SECRET, ADMIN_SECRET
@@ -24,10 +18,9 @@ bearer_transport = BearerTransport(tokenUrl="")
 def get_jwt_strategy() -> JWTStrategy:
     return JWTStrategy(secret=FASTAPI_SECRET, lifetime_seconds=3600)
 
+
 auth_backend = AuthenticationBackend(
-    name="jwt",
-    transport=bearer_transport,
-    get_strategy=get_jwt_strategy
+    name="jwt", transport=bearer_transport, get_strategy=get_jwt_strategy
 )
 
 
@@ -41,7 +34,7 @@ class AdminManager(IntegerIDMixin, BaseUserManager[Admin, int]):
         safe: bool = False,
         request: Optional[Request] = None,
     ) -> models.UP:
-        
+
         await self.validate_password(user_create.password, user_create)
 
         existing_user = await self.user_db.get_by_email(user_create.email)
@@ -78,7 +71,9 @@ class AdminManager(IntegerIDMixin, BaseUserManager[Admin, int]):
     async def on_after_request_verify(
         self, admin: Admin, token: str, request: Optional[Request] = None
     ):
-        print(f"Verification requested for admin {admin.id}. Verification token: {token}")
+        print(
+            f"Verification requested for admin {admin.id}. Verification token: {token}"
+        )
 
 
 async def get_admin_manager(admin_db=Depends(get_admin_db)):

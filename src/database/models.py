@@ -47,10 +47,10 @@ class UserMetric(Base):
 
     learned_amount = Column(Integer, nullable=True, default=0)
     learned_percents = Column(Float, nullable=True, default=0)
-    
+
     speech_seconds = Column(Integer, nullable=True, default=0)
     video_seconds = Column(Integer, nullable=True, default=0)
-    
+
     uwords_uid = Column(String, nullable=False)
 
     created_date = Column(DateTime(timezone=True), server_default=func.now())

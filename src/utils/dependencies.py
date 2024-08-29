@@ -6,5 +6,6 @@ from src.services.user_metric import UserMetricService
 def global_metric_service_fabric():
     return GlobalMetricService(GlobalMetricRepository())
 
+
 def user_metric_service_fabric():
     return UserMetricService(UserMetricRepository())
